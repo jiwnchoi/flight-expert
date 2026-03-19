@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flight Expert"
+  short_description: "Find airfare with ITA Matrix"
+  default_prompt: "Find and compare flights from natural-language trip requests using ITA Matrix."
