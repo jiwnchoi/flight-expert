@@ -148,6 +148,16 @@ async function loadPayload(filePath) {
   return JSON.parse(raw);
 }
 
+function normalizePayloadBatch(input) {
+  if (Array.isArray(input)) {
+    if (input.length === 0) {
+      throw new Error("payload array must include at least one payload");
+    }
+    return input;
+  }
+  return [input];
+}
+
 function encodeSearchValue(sitePayload) {
   const raw = Buffer.from(JSON.stringify(sitePayload), "utf8").toString("base64");
   return raw.replace(/=+$/u, "");
@@ -624,6 +634,26 @@ async function buildRequestBody(sitePayload) {
   return buildSpecificRequestBody(sitePayload);
 }
 
+async function executeSearch(sitePayload, args) {
+  const requestBody = await buildRequestBody(JSON.parse(JSON.stringify(sitePayload)));
+  const response = await postJson(args.endpoint, requestBody);
+
+  const output = {
+    matrix_url: buildMatrixUrl(sitePayload),
+    site_payload: sitePayload,
+    summary: buildSummary(sitePayload, response, args.limit),
+  };
+
+  if (args.showRequest) {
+    output.request_body = requestBody;
+  }
+  if (args.raw) {
+    output.response = response;
+  }
+
+  return output;
+}
+
 async function postJson(url, body) {
   const response = await fetch(url, {
     method: "POST",
@@ -823,7 +853,7 @@ function usage() {
     "Usage: node scripts/matrix_search.js [options]",
     "",
     "Options:",
-    "  --payload-file <path>  Path to Matrix site payload JSON. If omitted, read stdin.",
+    "  --payload-file <path>  Path to Matrix site payload JSON or JSON array. If omitted, read stdin.",
     "  --limit <n>            Number of results to include in summary output. Default: 5.",
     `  --endpoint <url>       Matrix API endpoint. Default: ${DEFAULT_ENDPOINT}`,
     "  --raw                  Include the raw API response.",
@@ -887,22 +917,10 @@ function parseCliArgs(argv) {
 
 async function main() {
   const args = parseCliArgs(process.argv.slice(2));
-  const sitePayload = await loadPayload(args.payloadFile);
-  const requestBody = await buildRequestBody(JSON.parse(JSON.stringify(sitePayload)));
-  const response = await postJson(args.endpoint, requestBody);
-
-  const output = {
-    matrix_url: buildMatrixUrl(sitePayload),
-    site_payload: sitePayload,
-    summary: buildSummary(sitePayload, response, args.limit),
-  };
-
-  if (args.showRequest) {
-    output.request_body = requestBody;
-  }
-  if (args.raw) {
-    output.response = response;
-  }
+  const payloadInput = await loadPayload(args.payloadFile);
+  const payloadBatch = normalizePayloadBatch(payloadInput);
+  const results = await Promise.all(payloadBatch.map((sitePayload) => executeSearch(sitePayload, args)));
+  const output = Array.isArray(payloadInput) ? results : results[0];
 
   process.stdout.write(`${JSON.stringify(sortValue(output), null, 2)}\n`);
 }

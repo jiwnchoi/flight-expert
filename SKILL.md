@@ -23,6 +23,9 @@ Turn a natural-language flight request into an ITA Matrix site payload, add care
 node scripts/matrix_search.js --payload-file /tmp/request.json --limit 5
 ```
 
+   - The CLI accepts either one site payload object or an array of site payloads.
+   - When given an array, it executes all searches concurrently with `Promise.all` and returns a result array in the same order.
+
 6. Read the returned JSON and answer with:
    - The exact itinerary assumptions you used
    - The top results with price, carrier, key flights, stops, and notable warnings
@@ -61,6 +64,8 @@ node scripts/matrix_search.js --payload-file /tmp/request.json --limit 5
 - `request_body`: exact direct API body when `--show-request`
 - `summary`: compact summary of top solutions
 - `response`: raw Matrix API response when `--raw`
+
+If the input is a payload array, the script returns an array of those result objects.
 
 For calendar searches, the script generates Matrix `bgProgramResponse` through `agent-browser`, so that CLI must be installed and usable in the environment.
 

@@ -5,7 +5,7 @@ This skill uses two different payload shapes:
 1. The Matrix site payload
 2. The direct `/v1/search` API request body
 
-The Node.js CLI accepts the site payload and converts it to the API body.
+The Node.js CLI accepts either one site payload object or an array of site payload objects, then converts each one to the API body.
 
 ## Site Payload Shape
 
@@ -53,6 +53,8 @@ The Node.js CLI accepts the site payload and converts it to the API body.
   }
 }
 ```
+
+You can also pass a JSON array of site payloads to run multiple searches in parallel. The script preserves input order in its output array.
 
 ## Important Conventions
 
